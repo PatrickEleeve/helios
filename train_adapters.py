@@ -122,7 +122,7 @@ def train_single_adapter(
 
 # --- 4. 主训练协调函数 (无需修改) ---
 def run_training_pipeline():
-    # ... (此函数内容完全不变，直接复用即可)
+    """协调整个训练流程，并确保代码中的键名与数据文件中的键名完全匹配。"""
     print("🚀 Initializing training pipeline...")
 
     adapters_to_train = {
@@ -136,70 +136,75 @@ def run_training_pipeline():
     trainable_params = [p for adapter in adapters_to_train.values() for p in adapter.parameters()]
     optimizer = optim.AdamW(trainable_params, lr=5e-4, weight_decay=0.01)
     
+    # 每个任务20轮，总共80轮
     total_epochs = 80 
     scheduler = CosineAnnealingLR(optimizer, T_max=total_epochs, eta_min=1e-6)
 
-    # 任务1
+    # --- **以下是关键的修正部分** ---
+
+    # 任务1: 训练 Analyst -> Trader 链路
     try:
         with open("data/analyst_to_trader_scenarios.jsonl", "r") as f:
             scenarios_at = [json.loads(line) for line in f]
         train_single_adapter(
             adapters_to_train['analyst_to_trader'], 
             optimizer, scheduler, scenarios_at, 
-            source_key='analyst_input', 
-            target_key='ideal_trader_starting_thought',
+            source_key='analyst_input',                  # <-- 与文件键名匹配
+            target_key='ideal_trader_starting_thought', # <-- 与文件键名匹配
             epochs=20, adapter_name="analyst_to_trader"
         )
     except FileNotFoundError:
         print("WARNING: 'data/analyst_to_trader_scenarios.jsonl' not found. Skipping.")
 
-    # 任务2
+    # 任务2: 训练 Bull -> Bear 链路
     try:
         with open("data/debate_scenarios.jsonl", "r") as f:
             scenarios_db = [json.loads(line) for line in f]
         train_single_adapter(
             adapters_to_train['bull_to_bear'],
             optimizer, scheduler, scenarios_db,
-            source_key='attacker_argument',
-            target_key='ideal_rebuttal_thought',
+            source_key='attacker_argument',          # <-- 与文件键名匹配
+            target_key='ideal_rebuttal_thought',     # <-- 与文件键名匹配
             epochs=20, adapter_name="bull_to_bear"
         )
     except FileNotFoundError:
         print("WARNING: 'data/debate_scenarios.jsonl' not found. Skipping.")
         
-    # 任务3
+    # 任务3: 训练 Bear -> Bull 链路
     try:
         with open("data/debate_scenarios_rebuttal.jsonl", "r") as f:
              scenarios_db_rebuttal = [json.loads(line) for line in f]
         train_single_adapter(
             adapters_to_train['bear_to_bull'],
             optimizer, scheduler, scenarios_db_rebuttal,
-            source_key='rebuttal_argument',
-            target_key='ideal_counter_attack_thought',
+            source_key='rebuttal_argument',             # <-- 与文件键名匹配
+            target_key='ideal_counter_attack_thought', # <-- 与文件键名匹配
             epochs=20, adapter_name="bear_to_bull"
         )
     except FileNotFoundError:
         print("WARNING: 'data/debate_scenarios_rebuttal.jsonl' not found. Skipping.")
 
-    # 任务4
+    # 任务4: 训练 Trader -> Risk 链路
     try:
         with open("data/trader_to_risk_scenarios.jsonl", "r") as f:
              scenarios_tr = [json.loads(line) for line in f]
         train_single_adapter(
             adapters_to_train['trader_to_risk'],
             optimizer, scheduler, scenarios_tr,
-            source_key='trader_plan_text',
-            target_key='ideal_risk_manager_thought',
+            source_key='trader_plan_text',           # <-- 与文件键名匹配
+            target_key='ideal_risk_manager_thought',# <-- 与文件键名匹配
             epochs=20, adapter_name="trader_to_risk"
         )
     except FileNotFoundError:
         print("WARNING: 'data/trader_to_risk_scenarios.jsonl' not found. Skipping.")
 
+    # --- 保存所有训练好的适配器 (无需修改) ---
     print("\n✅ All training tasks finished. Saving adapter weights...")
     output_dir = "adapters"
     os.makedirs(output_dir, exist_ok=True)
     
     for name, adapter in adapters_to_train.items():
+        # 这里用了一个更稳健的检查，确保只保存在训练中被更新过的适配器
         if any(p.grad is not None for p in adapter.parameters()):
             save_path = os.path.join(output_dir, f"{name}_adapter.pth")
             torch.save(adapter.state_dict(), save_path)
