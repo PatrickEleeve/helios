@@ -11,6 +11,9 @@ class HSC_AgentState(TypedDict):
     # === 宏观追踪信息 ===
     company_of_interest: str
     trade_date: str
+
+    analyst_reports: Dict[str, str] # 用于存放分析师的文本报告
+    analyst_hidden_states: Dict[str, torch.Tensor] # 保留，但主要作用被取代
     
     # 用于记录和调试的文本日志，保持系统的可解释性
     text_log: List[str]
@@ -29,3 +32,7 @@ class HSC_AgentState(TypedDict):
 
     # === 最终决策存储 ===
     final_decision: Optional[str]
+
+    analyst_reports: Dict[str, str]
+
+    high_risk_flag: bool # 新增

@@ -12,15 +12,15 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # --- 模型设置 ---
 # 我们将从这里开始，使用一个较小的、可快速测试的模型
-BASE_MODEL_NAME = "Qwen/Qwen2-0.5B"
-# 基础模型的隐藏层维度，Qwen2-0.5B是896
-HIDDEN_SIZE = 896
+BASE_MODEL_NAME = "Qwen/Qwen3-8B"
+# 基础模型的隐藏层维度，Qwen3-8B是1024
+HIDDEN_SIZE = 4096
 # 适配器的瓶颈层维度
 BOTTLENECK_DIM = 128
 # 我们选择在哪一层进行隐藏状态的交换
 TARGET_COMM_LAYER = 12 
 
 # --- 设备设置 ---
-DEVICE = "mps" # "cuda" if torch.cuda.is_available() else "cpu"
+DEVICE = "cuda" # "cuda" if torch.cuda.is_available() else "cpu"
 
 TARGET_COMM_LAYER = 12
